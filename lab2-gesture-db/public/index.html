@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Жестова база працівників</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231f5fa8'/%3E%3Cpath d='M4 4h8M4 8h8M4 12h5' stroke='white' stroke-width='1.6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="appbar">
+    <div class="appbar-title">
+      <h1>Жестовий інтерфейс бази даних</h1>
+      <span class="appbar-sub">Лабораторна робота № 2 · база працівників</span>
+    </div>
+    <div class="appbar-tools">
+      <span class="status" id="status-model" data-state="loading">Модель: завантаження…</span>
+      <span class="status" id="status-camera" data-state="loading">Камера: …</span>
+      <span class="status" id="status-fps">— кадр/с</span>
+      <label class="check" title="Навести курсор і потримати ~1 с — те саме, що клік (у вікнах і на рядках таблиці)"><input type="checkbox" id="opt-dwell" checked> Клік затримкою</label>
+      <button class="btn" id="btn-pause" type="button" aria-pressed="false">Пауза</button>
+      <button class="btn" id="btn-accuracy" type="button">Перевірка точності</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel camera-panel" aria-labelledby="camera-title">
+      <h2 class="panel-title" id="camera-title">Камера</h2>
+      <div class="panel-body">
+        <div class="camera">
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div class="camera-badge" id="pose-badge">Рука не в кадрі</div>
+          <div class="hold-ring" id="hold-ring" hidden><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20"/><circle class="progress" cx="24" cy="24" r="20"/></svg><span id="hold-icon"></span></div>
+          <div class="camera-message" id="camera-message" hidden></div>
+        </div>
+        <div class="camera-meta">
+          <span id="light-meter">Освітлення: —</span>
+          <span id="infer-time">Обробка кадру: —</span>
+        </div>
+      </div>
+
+      <h2 class="panel-title">Жести</h2>
+      <table class="legend" id="legend">
+        <thead><tr><th>Жест</th><th>Дія</th></tr></thead>
+        <tbody>
+          <tr data-sim="select_all"><td><span class="g">✌️</span>V-жест (вказівний і середній пальці), утримати</td><td>Показати всіх</td></tr>
+          <tr data-sim="add"><td><span class="g">✊→☝️</span>Кулак, потім вказівний палець</td><td>Додати</td></tr>
+          <tr data-sim="update"><td><span class="g">☝️🔄</span>Коло вказівним пальцем</td><td>Редагувати вибраний</td></tr>
+          <tr data-sim="delete"><td><span class="g">👋↔️</span>Мах відкритою долонею вбік</td><td>Видалити вибраний</td></tr>
+          <tr><td><span class="g">✋</span>Рух долонею</td><td>Курсор</td></tr>
+          <tr><td><span class="g">⏳ 👌</span>Затримка курсора ~1 с або щипок (жест «OK»)</td><td>Клік</td></tr>
+          <tr data-sim="confirm"><td><span class="g">👍</span>Великий палець угору, утримати</td><td>Зберегти / Так</td></tr>
+          <tr data-sim="cancel"><td><span class="g">👎</span>Великий палець униз, утримати</td><td>Скасувати / Ні</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Без камери рядок легенди можна натиснути мишею — це імітує жест.</p>
+    </section>
+
+    <section class="panel data-panel" aria-labelledby="table-title">
+      <div class="panel-title panel-title-row">
+        <h2 id="table-title">Працівники</h2>
+        <span id="table-info" class="dim"></span>
+      </div>
+      <div class="toolbar">
+        <button class="btn" type="button" data-action="select_all">Показати всіх <span class="g-hint">✌️</span></button>
+        <button class="btn primary" type="button" data-action="add">Додати <span class="g-hint">✊→☝️</span></button>
+        <button class="btn" type="button" data-action="update">Редагувати <span class="g-hint">☝️🔄</span></button>
+        <button class="btn danger" type="button" data-action="delete">Видалити <span class="g-hint">👋↔️</span></button>
+      </div>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th class="num">ID</th><th>Ім’я та прізвище</th><th>Посада</th><th class="num">Зарплата, грн</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel log-panel" aria-labelledby="log-title">
+      <div class="panel-title panel-title-row">
+        <h2 id="log-title">Журнал</h2>
+        <button class="link" id="clear-log" type="button">очистити</button>
+      </div>
+      <ol class="log" id="log"></ol>
+      <p class="note" id="log-empty">Записів немає.</p>
+    </section>
+  </main>
+
+  <footer class="statusbar" aria-live="polite">
+    <span id="toast" data-status="info">Готово.</span>
+  </footer>
+
+  <!-- Форма додавання / редагування -->
+  <div class="modal" id="form-modal" hidden>
+    <div class="dialog form-dialog" role="dialog" aria-modal="true" aria-labelledby="form-title">
+      <h2 class="dialog-title" id="form-title">Новий працівник</h2>
+      <div class="dialog-body">
+        <div class="fields">
+          <div class="field" data-field="name">
+            <label for="f-name">Ім’я та прізвище</label>
+            <div class="field-row">
+              <input id="f-name" type="text" maxlength="80" autocomplete="off">
+              <button class="btn mic-btn" type="button" data-dictate="name" title="Надиктувати голосом">Голос</button>
+            </div>
+            <small class="error" data-error="name"></small>
+          </div>
+          <div class="field" data-field="position">
+            <label for="f-position">Посада</label>
+            <div class="field-row">
+              <input id="f-position" type="text" maxlength="60" autocomplete="off">
+              <button class="btn mic-btn" type="button" data-dictate="position" title="Надиктувати голосом">Голос</button>
+            </div>
+            <small class="error" data-error="position"></small>
+          </div>
+        </div>
+
+        <div class="quick">
+          <span class="quick-label">Ім’я</span><div class="options" id="first-chips"></div>
+          <span class="quick-label">Прізвище</span><div class="options" id="last-chips"></div>
+          <span class="quick-label">Посада</span><div class="options" id="position-chips"></div>
+          <span class="quick-label">Зарплата</span><div class="options" id="salary-chips"></div>
+          <span class="quick-label"></span>
+          <div class="salary">
+            <button class="btn step" type="button" data-step="-5000">−5000</button>
+            <button class="btn step" type="button" data-step="-1000">−1000</button>
+            <output id="f-salary">30 000 ₴</output>
+            <button class="btn step" type="button" data-step="1000">+1000</button>
+            <button class="btn step" type="button" data-step="5000">+5000</button>
+            <small class="error" data-error="salary"></small>
+          </div>
+        </div>
+
+        <div class="keyboard" id="keyboard" hidden></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="keyboard-toggle" aria-expanded="false">Клавіатура</button>
+        <span class="spacer"></span>
+        <span class="dim">👍 — зберегти, 👎 — скасувати (утримати)</span>
+        <button class="btn" type="button" id="form-cancel">Скасувати</button>
+        <button class="btn primary" type="button" id="form-save">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Підтвердження видалення -->
+  <div class="modal" id="confirm-modal" hidden>
+    <div class="dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-heading">
+      <h2 class="dialog-title" id="confirm-heading">Підтвердження</h2>
+      <div class="dialog-body">
+        <p id="confirm-text">Видалити працівника?</p>
+        <p class="dim">👍 — так, 👎 — ні (утримати).</p>
+      </div>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn" type="button" id="confirm-no">Ні</button>
+        <button class="btn danger-solid" type="button" id="confirm-yes">Так, видалити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Перевірка точності розпізнавання -->
+  <div class="modal" id="accuracy-modal" hidden>
+    <div class="dialog accuracy-dialog" role="dialog" aria-modal="true" aria-labelledby="acc-title">
+      <h2 class="dialog-title" id="acc-title">Перевірка точності жестів</h2>
+      <div class="dialog-body">
+        <div id="acc-setup">
+          <p>Система по черзі просить показати кожен жест і рахує, чи правильно його розпізнано. Дії з базою під час перевірки не виконуються.</p>
+          <div class="form-row">
+            <label for="acc-trials">Спроб на кожен жест</label>
+            <select id="acc-trials"><option>3</option><option selected>5</option><option>10</option></select>
+          </div>
+          <div class="form-row">
+            <label for="acc-conditions">Умови (для звіту)</label>
+            <input id="acc-conditions" type="text" value="Денне світло" maxlength="60">
+          </div>
+        </div>
+        <div id="acc-run" hidden>
+          <p class="acc-step"><small id="acc-progress"></small></p>
+          <p class="acc-emoji" id="acc-icon"></p>
+          <p class="acc-target" id="acc-name"></p>
+          <div class="acc-timer"><div id="acc-timer-bar"></div></div>
+          <p id="acc-feedback" class="acc-feedback"></p>
+        </div>
+        <div id="acc-results" hidden></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="acc-copy" hidden>Копіювати таблицю</button>
+        <span class="spacer"></span>
+        <button class="btn" type="button" id="acc-close">Закрити</button>
+        <button class="btn primary" type="button" id="acc-start">Почати</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="air-cursor" id="air-cursor" hidden>
+    <svg viewBox="0 0 48 48" aria-hidden="true"><circle class="track" cx="24" cy="24" r="20"/><circle class="progress" id="cursor-progress" cx="24" cy="24" r="20"/></svg>
+    <span class="cursor-label" id="cursor-label"></span>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

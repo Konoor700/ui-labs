@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>AR-рулетка</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23333'/%3E%3Cpath d='M2 12 L14 4' stroke='%23d4f542' stroke-width='1.6'/%3E%3Crect x='1' y='11' width='3' height='3' fill='%23ddd'/%3E%3Crect x='12' y='2' width='3' height='3' fill='%23ddd'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <header class="appbar">
+    <div class="appbar-title">
+      <h1>AR-рулетка</h1>
+      <span class="appbar-sub">Лабораторна робота № 3 · вимірювання в доповненій реальності</span>
+    </div>
+    <div class="appbar-tools">
+      <span class="status" id="mode-status" data-state="ok">Режим: симулятор</span>
+      <label class="field-inline">Освітлення
+        <select id="opt-lighting">
+          <option value="normal">нормальне</option>
+          <option value="dim">тьмяне</option>
+          <option value="dark">темно</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="opt-noise" checked> Похибка трекінгу</label>
+      <label class="check"><input type="checkbox" id="opt-planes" checked> Площини</label>
+      <label class="check" title="Нова точка ближче 6 см до наявної «прилипає» до неї; біля першої — замикає контур"><input type="checkbox" id="opt-snap" checked> Прилипання</label>
+      <span class="status" id="fps">— кадр/с</span>
+      <button class="btn" type="button" id="btn-saved">Збережені</button>
+      <button class="btn" type="button" id="btn-help">Довідка</button>
+      <button class="btn primary" type="button" id="btn-ar" hidden>Почати AR</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <canvas id="view" aria-label="Віртуальна кімната (симулятор камери)"></canvas>
+
+    <!-- Інтерфейс поверх зображення. У справжньому AR цей блок стає dom-overlay. -->
+    <div class="overlay" id="overlay">
+      <ol class="point-strip" id="point-strip" aria-label="Точки виміру"></ol>
+      <p class="hint" id="hint">Поводіть камерою, щоб знайти поверхні</p>
+      <p class="notice" id="notice" hidden></p>
+
+      <div class="resultbar">
+        <div>
+          <span class="result-label">РЕЗУЛЬТАТ</span>
+          <span class="result" id="result">—</span>
+          <span class="result-extra" id="result-extra"></span>
+        </div>
+        <div class="unit-toggle" role="group" aria-label="Одиниці">
+          <button type="button" data-unit="cm" aria-pressed="true">см</button>
+          <button type="button" data-unit="m" aria-pressed="false">м</button>
+        </div>
+      </div>
+
+      <div class="fabs">
+        <button class="fab" type="button" id="btn-delete-last" title="Видалити останню точку (Backspace)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11v12H9l-6-6 6-6zM12 9.5l5 5M17 9.5l-5 5"/></svg>
+        </button>
+        <button class="fab" type="button" id="btn-edit" title="Редагування (меню)" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>
+        </button>
+        <button class="fab add" type="button" id="btn-add" title="Додати точку в місці прицілу (Пробіл)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+
+      <div class="menu" id="edit-menu" hidden>
+        <p class="menu-title" id="menu-title">Вимір</p>
+        <button type="button" data-cmd="delete">Видалити точку</button>
+        <button type="button" data-cmd="up">Перемістити раніше</button>
+        <button type="button" data-cmd="down">Перемістити пізніше</button>
+        <button type="button" data-cmd="close">Замкнути контур</button>
+        <button type="button" data-cmd="undo">Скасувати дію</button>
+        <button type="button" data-cmd="clear">Очистити все</button>
+        <hr>
+        <button type="button" data-cmd="save">Зберегти вимір…</button>
+        <button type="button" data-cmd="accuracy">Перевірити точність…</button>
+      </div>
+
+      <button class="btn exit-ar" type="button" id="btn-exit-ar" hidden>Вийти з AR</button>
+    </div>
+
+    <aside class="drawer" id="saved-drawer" hidden aria-labelledby="saved-title">
+      <div class="drawer-head">
+        <h2 id="saved-title">Збережені виміри</h2>
+        <button class="link" type="button" id="saved-close">закрити</button>
+      </div>
+      <ol class="saved-list" id="saved-list"></ol>
+      <p class="note" id="saved-empty">Збережених вимірів немає.</p>
+    </aside>
+  </main>
+
+  <!-- Збереження -->
+  <div class="modal" id="save-modal" hidden>
+    <form class="dialog" id="save-form" role="dialog" aria-modal="true" aria-labelledby="save-heading">
+      <h2 class="dialog-title" id="save-heading">Зберегти вимір</h2>
+      <div class="dialog-body">
+        <label class="form-row" for="save-name">Назва</label>
+        <input id="save-name" type="text" maxlength="60" required autocomplete="off">
+        <p class="dim" id="save-summary"></p>
+        <p class="error" id="save-error"></p>
+      </div>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn" type="button" data-close>Скасувати</button>
+        <button class="btn primary" type="submit">Зберегти</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Перевірка точності -->
+  <div class="modal" id="accuracy-modal" hidden>
+    <div class="dialog wide" role="dialog" aria-modal="true" aria-labelledby="acc-heading">
+      <h2 class="dialog-title" id="acc-heading">Перевірка точності</h2>
+      <div class="dialog-body">
+        <p class="dim">Розміри об’єктів віртуальної кімнати відомі. Виміряйте об’єкт (дві точки — по краях), оберіть його тут і порівняйте.</p>
+        <div class="acc-row">
+          <label for="acc-ref">Еталон</label>
+          <select id="acc-ref"></select>
+        </div>
+        <table class="grid compact">
+          <tbody>
+            <tr><th>Еталон</th><td id="acc-reference">—</td></tr>
+            <tr><th>Виміряно</th><td id="acc-measured">—</td></tr>
+            <tr><th>Похибка</th><td id="acc-error">—</td></tr>
+            <tr><th>Точність</th><td id="acc-percent">—</td></tr>
+          </tbody>
+        </table>
+        <div class="acc-log-head">
+          <h3>Записані перевірки</h3>
+          <span class="dim" id="acc-average"></span>
+        </div>
+        <table class="grid compact">
+          <thead><tr><th>Об’єкт</th><th>Освітлення</th><th class="num">Еталон</th><th class="num">Виміряно</th><th class="num">Точність</th></tr></thead>
+          <tbody id="acc-log"></tbody>
+        </table>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="acc-copy">Копіювати таблицю</button>
+        <span class="spacer"></span>
+        <button class="btn" type="button" data-close>Закрити</button>
+        <button class="btn primary" type="button" id="acc-record">Записати перевірку</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Довідка -->
+  <div class="modal" id="help-modal" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="help-heading">
+      <h2 class="dialog-title" id="help-heading">Як користуватися</h2>
+      <div class="dialog-body help">
+        <p><b>Симулятор</b> замінює камеру телефона: ви рухаєтеся віртуальною кімнатою, а програма знаходить поверхні так, як це робить ARCore.</p>
+        <table class="grid compact">
+          <tbody>
+            <tr><th>W A S D / стрілки</th><td>рухатися, повертати</td></tr>
+            <tr><th>Миша (затиснути й тягнути)</th><td>оглядатися</td></tr>
+            <tr><th>R / F, колесо миші</th><td>вгору / вниз, вперед / назад</td></tr>
+            <tr><th>Клік по поверхні</th><td>поставити точку там, де клікнули</td></tr>
+            <tr><th>Пробіл або кнопка +</th><td>поставити точку в місці прицілу</td></tr>
+            <tr><th>Backspace або кнопка ⌫</th><td>видалити останню точку</td></tr>
+            <tr><th>Delete</th><td>видалити вибрану точку</td></tr>
+            <tr><th>Ctrl+Z</th><td>скасувати дію</td></tr>
+            <tr><th>C</th><td>замкнути / розімкнути контур</td></tr>
+          </tbody>
+        </table>
+        <p><b>Прилипання:</b> якщо навести приціл ближче 6 см до наявної точки, він стає помаранчевим і нова точка ставиться точно в неї. Біля першої точки (коли точок 3 і більше) це замикає контур — з’явиться периметр і площа.</p>
+        <p>Поверхня з’являється кольоровою сіткою, коли трекінг її знайде: повільно поводіть камерою над підлогою чи стіною. Точки ставляться лише на знайдені ділянки. Однотонну стелю трекінг не знаходить, а в темряві призупиняється — як справжній ARCore.</p>
+        <p><b>Справжній AR</b> (кнопка «Почати AR») доступний у Chrome на Android-телефоні з підтримкою ARCore.</p>
+      </div>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn primary" type="button" data-close>Зрозуміло</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

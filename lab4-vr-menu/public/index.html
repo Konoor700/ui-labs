@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VR-меню ресторану</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='2' fill='%23333'/%3E%3Crect x='2' y='5' width='12' height='6' rx='2' fill='none' stroke='%23ffd166' stroke-width='1.4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <header class="appbar">
+    <div class="appbar-title">
+      <h1>VR-меню ресторану</h1>
+      <span class="appbar-sub">Лабораторна робота № 4 · віртуальне меню в AR/VR</span>
+    </div>
+    <div class="appbar-tools">
+      <span class="status" id="mode-status" data-state="ok">Режим: емуляція окулярів</span>
+      <button class="btn primary" type="button" id="btn-menu">Меню (M)</button>
+      <label class="check" title="Вибір пункту поглядом: затримати приціл у центрі екрана на кнопці"><input type="checkbox" id="opt-gaze" checked> Погляд</label>
+      <button class="btn toggle" type="button" id="btn-eyes" aria-pressed="false" title="Погляд очима через вебкамеру (з калібруванням)">Очі (камера)</button>
+      <button class="btn" type="button" id="btn-calib" hidden>Калібрувати</button>
+      <button class="btn toggle" type="button" id="btn-hand" aria-pressed="false">Рука (камера)</button>
+      <button class="btn toggle" type="button" id="btn-voice" aria-pressed="false">Голос</button>
+      <button class="btn" type="button" id="btn-accuracy">Перевірка точності</button>
+      <button class="btn" type="button" id="btn-help">Довідка</button>
+      <button class="btn primary" type="button" id="btn-vr" hidden>Увійти у VR</button>
+      <button class="btn primary" type="button" id="btn-ar" hidden>Увійти в AR</button>
+      <span class="status" id="stats">— кадр/с</span>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="view" aria-label="Віртуальний ресторан (емуляція окулярів)"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="hand-cursor" id="hand-cursor" hidden></div>
+      <div class="webcam" id="webcam" hidden>
+        <video id="webcam-video" playsinline muted></video>
+        <span id="hand-status">Рука</span>
+      </div>
+      <div class="calib" id="calib" hidden>
+        <div class="calib-marks"></div>
+        <div class="calib-dot" hidden></div>
+        <div class="calib-live" hidden></div>
+        <p class="calib-count" hidden></p>
+        <div class="calib-box dialog" role="dialog" aria-modal="true" aria-labelledby="calib-title">
+          <h2 class="dialog-title" id="calib-title" data-calib="title">Калібрування погляду</h2>
+          <div class="dialog-body">
+            <p data-calib="text"></p>
+            <p class="calib-face" data-calib="face"></p>
+            <div class="form-row"><label for="calib-smooth">Плавність прицілу</label><select id="calib-smooth" data-calib="smooth"></select></div>
+          </div>
+          <div class="dialog-actions">
+            <button class="btn" type="button" data-calib="cancel">Скасувати</button>
+            <span class="spacer"></span>
+            <button class="btn" type="button" data-calib="retry" hidden>Повторити</button>
+            <button class="btn primary" type="button" data-calib="go">Почати</button>
+          </div>
+        </div>
+      </div>
+      <div class="webcam eyecam" id="eyecam" hidden>
+        <video id="eyecam-video" playsinline muted></video>
+        <span id="eyecam-status">Очі</span>
+      </div>
+      <p class="statusline" id="statusline">Натисніть «Меню (M)» або скажіть «меню». Оглядайтеся мишею, приціл у центрі — це ваш погляд.</p>
+    </div>
+  </main>
+
+  <!-- Перевірка точності -->
+  <div class="modal" id="accuracy-modal" hidden>
+    <div class="dialog wide" role="dialog" aria-modal="true" aria-labelledby="acc-title">
+      <h2 class="dialog-title" id="acc-title">Перевірка точності вибору</h2>
+      <div class="dialog-body">
+        <p class="dim">Перед вами з’являться 9 цілей. Система підсвічує одну — оберіть її заданим способом. Зараховуються лише вибори цим способом.</p>
+        <div class="form-row"><label for="acc-method">Спосіб</label>
+          <select id="acc-method">
+            <option value="gaze">Погляд (затримка)</option>
+            <option value="eyes">Очі через вебкамеру (затримка)</option>
+            <option value="mouse">Миша / промінь контролера</option>
+            <option value="hand">Рука (вебкамера, щипок)</option>
+            <option value="voice">Голос (назвати номер)</option>
+          </select>
+        </div>
+        <div class="form-row"><label for="acc-trials">Спроб</label>
+          <select id="acc-trials"><option>5</option><option selected>10</option><option>20</option></select>
+        </div>
+        <h3 class="sub">Результати</h3>
+        <table class="grid">
+          <thead><tr><th>Спосіб</th><th class="num">Спроб</th><th class="num">Влучань</th><th class="num">Помилок</th><th class="num">Пропусків</th><th class="num">Точність</th><th class="num">Сер. час</th></tr></thead>
+          <tbody id="acc-log"></tbody>
+        </table>
+        <p class="dim" id="acc-empty">Ще немає результатів.</p>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" type="button" id="acc-copy">Копіювати таблицю</button>
+        <span class="spacer"></span>
+        <button class="btn" type="button" data-close>Закрити</button>
+        <button class="btn primary" type="button" id="acc-start">Почати</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Довідка -->
+  <div class="modal" id="help-modal" hidden>
+    <div class="dialog wide" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <h2 class="dialog-title" id="help-title">Як користуватися</h2>
+      <div class="dialog-body help">
+        <p>Ви — відвідувач віртуального ресторану. Меню «плаває» перед вами; оберіть категорію, страву (з’явиться її 3D-модель та інгредієнти), додайте в замовлення й оформіть його.</p>
+        <table class="grid">
+          <tbody>
+            <tr><th>Погляд</th><td>приціл у центрі екрана — ваш погляд. Затримайте його на кнопці ~1 с — кнопка спрацює (смужка внизу кнопки показує прогрес)</td></tr>
+            <tr><th>Очі (камера)</th><td>справжній погляд через вебкамеру. Після калібрування (9 точок + 4 контрольні) приціл рухається туди, куди ви дивитеся; затримайте погляд на кнопці ~1 с. Голову тримайте нерухомо; якщо приціл «з’їхав» — «Калібрувати»</td></tr>
+            <tr><th>Миша = промінь контролера</th><td>наведіть мишу на кнопку й клацніть (жовтий промінь від «руки»)</td></tr>
+            <tr><th>Рука (камера)</th><td>курсор — центр долоні; щипок (великий + вказівний, жест «OK») — вибір; мах долонею вбік — гортати сторінки</td></tr>
+            <tr><th>Голос</th><td>«меню», «закрити», «піца», «маргарита», «далі», «назад», «плюс», «додай в замовлення», «замовлення», «оформити», «так» / «ні»</td></tr>
+            <tr><th>Огляд, рух</th><td>затиснути ліву кнопку миші й тягнути; стрілки або Q / E; W A S D — крок</td></tr>
+            <tr><th>Клавіші</th><td>M — показати / сховати меню, Esc — закрити меню</td></tr>
+          </tbody>
+        </table>
+        <p><b>У справжніх окулярах</b> (наприклад, Meta Quest — браузер окулярів) з’явиться кнопка «Увійти у VR»: меню вибирається поглядом, променем контролера або щипком руки, бокова кнопка контролера показує / ховає меню.</p>
+      </div>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn primary" type="button" data-close>Зрозуміло</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

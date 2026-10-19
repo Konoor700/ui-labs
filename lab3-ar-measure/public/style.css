@@ -1,0 +1,157 @@
+:root {
+  --bg: #ececec;
+  --panel: #ffffff;
+  --panel-head: #f6f6f6;
+  --line: #c9c9c9;
+  --line-soft: #e2e2e2;
+  --text: #1d1d1d;
+  --dim: #5f5f5f;
+  --accent: #1f5fa8;
+  --accent-text: #ffffff;
+  --danger: #b42318;
+  --ok: #2f7d32;
+  --warn: #8a5a00;
+  --ar-dark: rgb(32 32 32 / 82%);
+  --measure: #d4f542;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1b1b;
+    --panel: #252525;
+    --panel-head: #2d2d2d;
+    --line: #444;
+    --line-soft: #363636;
+    --text: #e6e6e6;
+    --dim: #a3a3a3;
+    --accent: #6ea6e8;
+    --accent-text: #0d1a2a;
+    --danger: #f07167;
+    --ok: #79c37d;
+    --warn: #e0b45a;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+h1, h2, h3, p { margin: 0; }
+.dim { color: var(--dim); font-size: 13px; }
+.note { padding: 8px 12px; color: var(--dim); font-size: 13px; }
+.error { min-height: 18px; color: var(--danger); font-size: 13px; }
+
+/* Верхня панель */
+.appbar { display: flex; flex: none; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.appbar h1 { font-size: 16px; font-weight: 600; }
+.appbar-title { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.appbar-sub { color: var(--dim); font-size: 13px; }
+.appbar-tools { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.status { color: var(--dim); font-size: 13px; white-space: nowrap; }
+.status[data-state]::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--line); }
+.status[data-state="ok"]::before { background: var(--ok); }
+.status[data-state="ar"]::before { background: var(--accent); }
+.check, .field-inline { display: inline-flex; gap: 5px; align-items: center; font-size: 13px; cursor: pointer; }
+.field-inline select { height: 28px; padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); color: var(--text); font: inherit; }
+
+/* Кнопки */
+.btn { min-height: 30px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); color: var(--text); font: inherit; white-space: nowrap; cursor: pointer; }
+.btn:hover { border-color: #9a9a9a; background: var(--panel-head); }
+.btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+.link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; cursor: pointer; }
+.link:hover { text-decoration: underline; }
+
+/* Сцена */
+.stage { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #111; }
+#view { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+.overlay > * { pointer-events: auto; }
+.overlay .hint, .overlay .notice { pointer-events: none; }
+
+/* Смуга точок ліворуч — як у мобільних AR-рулетках */
+.point-strip { position: absolute; top: 0; bottom: 64px; left: 0; display: flex; flex-direction: column; gap: 6px; width: 56px; margin: 0; padding: 10px 0; overflow-y: auto; background: var(--ar-dark); list-style: none; }
+.point-strip li { display: flex; justify-content: center; }
+.point-strip button { position: relative; width: 36px; height: 36px; border: 1px solid #8a8a8a; border-radius: 3px; background: linear-gradient(135deg, #5b5b5b, #3c3c3c); color: #eee; font: 600 13px/1 "Segoe UI", sans-serif; cursor: pointer; }
+.point-strip button::before { content: ""; position: absolute; top: 3px; right: 3px; left: 3px; height: 6px; border-radius: 1px; background: rgb(255 255 255 / 12%); }
+.point-strip button[aria-pressed="true"] { border-color: #ff8a00; background: linear-gradient(135deg, #9b5a12, #6e3d08); }
+.point-strip:empty::after { content: "Точок ще немає"; padding: 0 6px; color: #aaa; font-size: 11px; text-align: center; }
+
+.hint { position: absolute; top: 12px; left: 50%; max-width: min(80%, 620px); padding: 6px 12px; border-radius: 3px; background: var(--ar-dark); color: #fff; font-size: 13.5px; text-align: center; transform: translateX(-50%); }
+.hint[data-ok="true"] { border-left: 3px solid var(--measure); }
+.notice { position: absolute; top: 52px; left: 50%; padding: 6px 12px; border-radius: 3px; background: #fff4d6; color: #5c4300; font-size: 13.5px; transform: translateX(-50%); }
+.notice[data-status="ok"] { background: #e8f5e9; color: #1b5e20; }
+.notice[data-status="error"] { background: #fdecea; color: #8a1c13; }
+
+/* Нижня панель результату */
+.resultbar { position: absolute; right: 0; bottom: 0; left: 0; display: flex; gap: 12px; align-items: center; justify-content: space-between; min-height: 64px; padding: 8px 230px 8px 16px; background: var(--ar-dark); color: #fff; }
+.result-label { display: block; color: #bbb; font-size: 11.5px; letter-spacing: .06em; }
+.result { font-size: 22px; font-variant-numeric: tabular-nums; }
+.result-extra { margin-left: 10px; color: var(--measure); font-size: 15px; }
+.unit-toggle { display: flex; }
+.unit-toggle button { min-width: 40px; height: 30px; border: 1px solid #777; background: transparent; color: #ddd; font: inherit; cursor: pointer; }
+.unit-toggle button:first-child { border-radius: 3px 0 0 3px; }
+.unit-toggle button:last-child { border-left: 0; border-radius: 0 3px 3px 0; }
+.unit-toggle button[aria-pressed="true"] { background: #ddd; color: #111; }
+
+/* Круглі кнопки */
+.fabs { position: absolute; right: 18px; bottom: 26px; display: flex; gap: 14px; align-items: flex-end; }
+.fab { display: grid; place-items: center; width: 56px; height: 56px; border: 0; border-radius: 50%; background: #d9d9d9; box-shadow: 0 2px 8px rgb(0 0 0 / 35%); cursor: pointer; }
+.fab svg { width: 26px; height: 26px; fill: none; stroke: #333; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#btn-delete-last { width: 48px; height: 48px; margin-bottom: 4px; }
+#btn-delete-last svg { width: 22px; height: 22px; }
+.fab.add { width: 68px; height: 68px; background: var(--measure); }
+.fab.add svg { width: 32px; height: 32px; stroke-width: 2.6; }
+.fab:disabled { opacity: .45; cursor: not-allowed; }
+.fab[aria-expanded="true"] { background: #fff; }
+
+.menu { position: absolute; right: 18px; bottom: 104px; display: flex; flex-direction: column; min-width: 230px; padding: 4px 0; border: 1px solid #888; background: var(--panel); box-shadow: 0 6px 24px rgb(0 0 0 / 30%); }
+.menu[hidden] { display: none; }
+.menu-title { padding: 6px 14px; border-bottom: 1px solid var(--line-soft); color: var(--dim); font-size: 12.5px; }
+.menu button { padding: 9px 14px; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.menu button:hover:not(:disabled) { background: var(--panel-head); }
+.menu button:disabled { color: var(--dim); opacity: .55; cursor: default; }
+.menu hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--line-soft); }
+
+.exit-ar { position: absolute; top: 12px; right: 12px; }
+
+/* Збережені виміри */
+.drawer { position: absolute; top: 0; right: 0; bottom: 110px; display: flex; flex-direction: column; width: min(360px, 90%); border-left: 1px solid var(--line); background: var(--panel); }
+.drawer[hidden] { display: none; }
+.drawer-head { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel-head); }
+.drawer-head h2 { font-size: 13px; font-weight: 600; }
+.saved-list { flex: 1; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.saved-list li { padding: 8px 12px; border-bottom: 1px solid var(--line-soft); }
+.saved-list b { display: block; font-weight: 600; }
+.saved-list .actions { display: flex; gap: 12px; margin-top: 4px; }
+
+/* Діалоги */
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 40%); }
+.modal[hidden] { display: none; }
+.dialog { display: flex; flex-direction: column; width: min(100%, 440px); max-height: calc(100vh - 40px); border: 1px solid #888; background: var(--panel); box-shadow: 0 6px 24px rgb(0 0 0 / 25%); }
+.dialog.wide { width: min(100%, 640px); }
+.dialog-title { padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel-head); font-size: 14px; font-weight: 600; }
+.dialog-body { display: flex; flex-direction: column; gap: 10px; padding: 14px; overflow-y: auto; }
+.dialog-body input, .dialog-body select { height: 34px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 2px; background: var(--panel); color: var(--text); font: inherit; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--panel-head); }
+.spacer { flex: 1; }
+.acc-row { display: grid; grid-template-columns: 80px 1fr; gap: 10px; align-items: center; }
+.acc-log-head { display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px; }
+.acc-log-head h3 { font-size: 13px; font-weight: 600; }
+.help p { font-size: 13.5px; }
+
+table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+.grid th, .grid td { padding: 5px 10px; border: 1px solid var(--line-soft); text-align: left; }
+.grid thead th, .grid tbody th { background: var(--panel-head); color: var(--dim); font-weight: 600; }
+.grid .num { text-align: right; font-variant-numeric: tabular-nums; }
+.grid.compact tbody th { width: 40%; }
+
+/* Канвас справжнього AR (поверх усього, поки триває сесія) */
+.xr-canvas { position: fixed; inset: 0; z-index: 10; }
+
+@media (max-width: 720px) {
+  .appbar-sub { display: none; }
+  .resultbar { padding-right: 16px; padding-bottom: 96px; }
+  .result { font-size: 18px; }
+  .fabs { bottom: 76px; }
+}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Голосова база працівників</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='9' y='3' width='6' height='12' rx='3' fill='%232f6fed'/%3E%3Cpath d='M5 11a7 7 0 0 0 14 0M12 18v3' stroke='%232f6fed' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="9" y="3" width="6" height="12" rx="3"/>
+        <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+      </svg>
+      <div>
+        <h1>Голосовий інтерфейс бази даних</h1>
+        <p>Керуйте базою працівників голосом українською мовою</p>
+      </div>
+    </div>
+    <div class="settings">
+      <label class="toggle"><input type="checkbox" id="opt-continuous"><span>Безперервне слухання</span></label>
+      <label class="toggle"><input type="checkbox" id="opt-tts" checked><span>Озвучувати відповіді</span></label>
+      <label class="toggle" title="Скільки секунд тиші означає кінець команди">
+        <span>Пауза завершення</span>
+        <select id="opt-pause">
+          <option value="1500">1,5 с</option>
+          <option value="2500" selected>2,5 с</option>
+          <option value="4000">4 с</option>
+          <option value="6000">6 с</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel voice" aria-label="Голосове керування">
+      <div id="support-warning" class="notice" hidden>
+        Ваш браузер не підтримує розпізнавання мовлення (Web Speech API). Відкрийте сторінку в Google Chrome
+        або Microsoft Edge. Команди все одно можна вводити текстом.
+      </div>
+
+      <div class="mic-area">
+        <button id="mic" class="mic" type="button" aria-pressed="false" aria-label="Почати слухати">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="12" rx="3"/>
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+          </svg>
+        </button>
+        <p id="mic-hint" class="mic-hint">Натисніть кнопку або клавішу <kbd>Пробіл</kbd></p>
+        <canvas id="level" class="level" width="320" height="44" aria-hidden="true"></canvas>
+      </div>
+
+      <div class="block">
+        <span class="label">Розпізнаний текст</span>
+        <p id="transcript" class="transcript is-empty">Тут з’явиться те, що ви сказали</p>
+        <div class="pause-track" aria-hidden="true"><div id="pause-bar" class="pause-bar"></div></div>
+      </div>
+
+      <div id="response" class="block response" data-status="idle" aria-live="polite">
+        <span class="label">Відповідь системи</span>
+        <p id="response-text">Скажіть «Допомога», щоб почути список команд.</p>
+      </div>
+
+      <div id="confirm" class="confirm" hidden>
+        <button id="confirm-yes" class="btn danger" type="button">Так, видалити</button>
+        <button id="confirm-no" class="btn" type="button">Скасувати</button>
+      </div>
+
+      <form id="text-form" class="text-form" autocomplete="off">
+        <input id="text-input" type="text" maxlength="300" placeholder="Або введіть команду текстом…" aria-label="Текстова команда">
+        <button class="btn primary" type="submit">Виконати</button>
+      </form>
+
+      <div class="block">
+        <span class="label">Приклади команд (можна натиснути)</span>
+        <div id="examples" class="chips"></div>
+      </div>
+    </section>
+
+    <section class="panel data" aria-label="Дані">
+      <div class="panel-head">
+        <div>
+          <h2 id="table-title">Усі працівники</h2>
+          <span id="table-count" class="muted"></span>
+        </div>
+        <button id="show-all" class="btn ghost" type="button">Показати всіх</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th class="num">ID</th><th>Ім’я та прізвище</th><th>Посада</th><th class="num">Зарплата</th><th>Додано</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel log" aria-label="Журнал команд">
+      <div class="panel-head">
+        <h2>Журнал команд</h2>
+        <button id="clear-log" class="btn ghost" type="button">Очистити</button>
+      </div>
+      <ol id="log" class="log-list"></ol>
+      <p id="log-empty" class="muted">Ще не виконано жодної команди.</p>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

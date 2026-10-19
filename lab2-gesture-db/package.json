@@ -1,0 +1,21 @@
+{
+  "name": "gesture-db-interface",
+  "version": "1.0.0",
+  "description": "Жестовий інтерфейс для управління базою даних працівників (лабораторна робота №2)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "postinstall": "node scripts/download-model.js",
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "test:e2e": "node test/e2e/browser.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "express": "^4.21.2"
+  }
+}

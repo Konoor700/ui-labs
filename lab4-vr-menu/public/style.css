@@ -1,0 +1,106 @@
+:root {
+  --panel: #ffffff;
+  --panel-head: #f6f6f6;
+  --line: #c9c9c9;
+  --line-soft: #e2e2e2;
+  --text: #1d1d1d;
+  --dim: #5f5f5f;
+  --accent: #1f5fa8;
+  --accent-text: #ffffff;
+  --ok: #2f7d32;
+  --warn: #8a5a00;
+  --danger: #b42318;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --panel: #252525;
+    --panel-head: #2d2d2d;
+    --line: #444;
+    --line-soft: #363636;
+    --text: #e6e6e6;
+    --dim: #a3a3a3;
+    --accent: #6ea6e8;
+    --accent-text: #0d1a2a;
+    --ok: #79c37d;
+    --warn: #e0b45a;
+    --danger: #f07167;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; margin: 0; background: #111; color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+h1, h2, h3, p { margin: 0; }
+.dim { color: var(--dim); font-size: 13px; }
+
+.appbar { display: flex; flex: none; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.appbar h1 { font-size: 16px; font-weight: 600; }
+.appbar-title { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.appbar-sub { color: var(--dim); font-size: 13px; }
+.appbar-tools { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.status { color: var(--dim); font-size: 13px; white-space: nowrap; }
+.status[data-state]::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--line); }
+.status[data-state="ok"]::before { background: var(--ok); }
+.status[data-state="xr"]::before { background: var(--accent); }
+.check { display: inline-flex; gap: 5px; align-items: center; font-size: 13px; cursor: pointer; }
+
+.btn { min-height: 30px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); color: var(--text); font: inherit; white-space: nowrap; cursor: pointer; }
+.btn:hover { border-color: #9a9a9a; background: var(--panel-head); }
+.btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-text); }
+.btn.toggle[aria-pressed="true"] { border-color: var(--ok); color: var(--ok); font-weight: 600; }
+
+.stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+#view { display: block; width: 100%; height: 100%; cursor: default; touch-action: none; }
+.overlay { position: absolute; inset: 0; pointer-events: none; }
+
+.statusline { position: absolute; right: 0; bottom: 0; left: 0; padding: 7px 16px; background: rgb(20 20 20 / 78%); color: #f2f2f2; font-size: 13.5px; }
+.statusline[data-status="ok"] { border-top: 2px solid #79c37d; }
+.statusline[data-status="warn"] { border-top: 2px solid #e0b45a; }
+
+.hand-cursor { position: absolute; top: 0; left: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 3px solid #ffd166; border-radius: 50%; background: rgb(255 209 102 / 25%); }
+.hand-cursor.is-pinch { background: #ffd166; }
+
+.webcam { position: absolute; bottom: 44px; left: 12px; width: 200px; border: 1px solid #555; background: #000; }
+.webcam video { display: block; width: 100%; transform: scaleX(-1); }
+.webcam span { display: block; padding: 3px 6px; background: rgb(20 20 20 / 85%); color: #ddd; font-size: 12px; }
+
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 45%); }
+.modal[hidden] { display: none; }
+.dialog { display: flex; flex-direction: column; width: min(100%, 460px); max-height: calc(100vh - 40px); border: 1px solid #888; background: var(--panel); box-shadow: 0 6px 24px rgb(0 0 0 / 25%); }
+.dialog.wide { width: min(100%, 720px); }
+.dialog-title { padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--panel-head); font-size: 14px; font-weight: 600; }
+.dialog-body { display: flex; flex-direction: column; gap: 10px; padding: 14px; overflow-y: auto; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--panel-head); }
+.spacer { flex: 1; }
+.form-row { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: center; }
+.form-row select { height: 32px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 2px; background: var(--panel); color: var(--text); font: inherit; }
+.sub { margin-top: 6px; font-size: 13px; font-weight: 600; }
+.help p { font-size: 13.5px; }
+
+table.grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+.grid th, .grid td { padding: 5px 10px; border: 1px solid var(--line-soft); text-align: left; vertical-align: top; }
+.grid th { background: var(--panel-head); color: var(--dim); font-weight: 600; }
+.grid tbody th { width: 28%; }
+.grid .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.eyecam { right: 12px; left: auto; z-index: 21; width: 160px; }
+.calib.is-measuring + .eyecam { visibility: hidden; }
+
+.calib { position: absolute; inset: 0; z-index: 20; background: rgb(18 18 18 / 92%); pointer-events: auto; }
+.calib-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(calc(100% - 32px), 520px); }
+.calib-box[hidden] { display: none; }
+.calib-face { font-size: 13px; font-weight: 600; color: var(--warn); }
+.calib-face[data-ok="true"] { color: var(--ok); }
+.calib-dot { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 3px solid #fff; border-radius: 50%; transition: transform 1.5s linear; }
+.calib-dot::after { content: ""; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #ffd166; }
+.calib-dot.is-collect { transform: scale(0.3); border-color: #ffd166; }
+.calib-count { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); color: #cfcfcf; font-size: 13px; }
+.calib-live { position: absolute; z-index: 1; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 2px solid #ffd166; border-radius: 50%; background: rgb(255 209 102 / 35%); pointer-events: none; }
+.calib-box .form-row { grid-template-columns: 140px 1fr; }
+.calib-target, .calib-est { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+.calib-target { border: 2px solid #fff; border-radius: 50%; }
+.calib-est::before, .calib-est::after { content: ""; position: absolute; top: 10px; left: 0; width: 22px; height: 2px; background: #ffd166; transform: rotate(45deg); }
+.calib-est::after { transform: rotate(-45deg); }

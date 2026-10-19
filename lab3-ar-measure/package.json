@@ -1,0 +1,20 @@
+{
+  "name": "ar-measure",
+  "version": "1.0.0",
+  "description": "AR-рулетка: інтерфейс доповненої реальності для вимірювань у просторі (лабораторна робота №3)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "test:e2e": "node test/e2e/browser.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "three": "^0.186.1"
+  }
+}
